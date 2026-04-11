@@ -1,0 +1,296 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  name                 String
+  email                String    @unique
+  passwordHash         String?
+  image                String?
+  city                 String?
+  preferredContact     String?
+  emailVerified        DateTime?
+  isAdmin              Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  shoePosts            ShoePost[]
+  sentMatchRequests    MatchRequest[]   @relation("SentMatchRequests")
+  receivedMatchRequests MatchRequest[]  @relation("ReceivedMatchRequests")
+  conversationsAsOne   Conversation[]   @relation("ParticipantOne")
+  conversationsAsTwo   Conversation[]   @relation("ParticipantTwo")
+  messages             Message[]
+  notifications        Notification[]
+  reports              Report[]         @relation("ReporterReports")
+  reportedReports      Report[]         @relation("ReportedUserReports")
+  blocksCreated        Block[]          @relation("Blocker")
+  blocksReceived       Block[]          @relation("Blocked")
+
+  @@map("users")
+}
+
+enum PostType {
+  LOST
+  FOUND
+}
+
+enum ShoeSide {
+  LEFT
+  RIGHT
+}
+
+enum ShoeCategory {
+  SNEAKER
+  BOOT
+  SANDAL
+  HEEL
+  LOAFER
+  DRESS_SHOE
+  ATHLETIC
+  SLIPPER
+  OTHER
+}
+
+enum PostStatus {
+  OPEN
+  POTENTIAL_MATCH
+  MATCHED
+  CLOSED
+}
+
+enum ShoeCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  WORN
+}
+
+model ShoePost {
+  id              String        @id @default(cuid())
+  userId          String
+  type            PostType
+  title           String
+  description     String
+  brand           String
+  model           String?
+  category        ShoeCategory
+  size            String
+  primaryColor    String
+  secondaryColor  String?
+  side            ShoeSide
+  genderCategory  String?
+  condition       ShoeCondition
+  locationText    String
+  latitude        Float?
+  longitude       Float?
+  dateOccurred    DateTime
+  reward          String?
+  status          PostStatus    @default(OPEN)
+  aiProcessedAt   DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images          ShoeImage[]
+  matchRequests   MatchRequest[]
+  conversations   Conversation[]
+  aiAttributes    ShoeAIAttributes?
+  sourceSuggestions MatchSuggestion[] @relation("SourcePost")
+  candidateSuggestions MatchSuggestion[] @relation("CandidatePost")
+  reports         Report[]
+
+  @@index([type])
+  @@index([status])
+  @@index([side])
+  @@index([category])
+  @@index([createdAt])
+  @@map("shoe_posts")
+}
+
+model ShoeImage {
+  id                String    @id @default(cuid())
+  shoePostId        String
+  imageUrl          String
+  sortOrder         Int       @default(0)
+  isPrimary         Boolean   @default(false)
+  embeddingRef      String?
+  visionLabels      Json?
+  imageQualityScore Float?
+  createdAt         DateTime  @default(now())
+
+  shoePost          ShoePost  @relation(fields: [shoePostId], references: [id], onDelete: Cascade)
+
+  @@map("shoe_images")
+}
+
+enum MatchRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CLOSED
+  CONFIRMED
+}
+
+model MatchRequest {
+  id              String             @id @default(cuid())
+  shoePostId      String
+  senderId        String
+  receiverId      String
+  initialMessage  String
+  status          MatchRequestStatus @default(PENDING)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  shoePost        ShoePost           @relation(fields: [shoePostId], references: [id], onDelete: Cascade)
+  sender          User               @relation("SentMatchRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver        User               @relation("ReceivedMatchRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([shoePostId, senderId])
+  @@map("match_requests")
+}
+
+model Conversation {
+  id              String    @id @default(cuid())
+  shoePostId      String
+  participantOneId String
+  participantTwoId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  shoePost        ShoePost  @relation(fields: [shoePostId], references: [id], onDelete: Cascade)
+  participantOne  User      @relation("ParticipantOne", fields: [participantOneId], references: [id], onDelete: Cascade)
+  participantTwo  User      @relation("ParticipantTwo", fields: [participantTwoId], references: [id], onDelete: Cascade)
+  messages        Message[]
+
+  @@unique([shoePostId, participantOneId, participantTwoId])
+  @@map("conversations")
+}
+
+model Message {
+  id              String    @id @default(cuid())
+  conversationId  String
+  senderId        String
+  body            String
+  imageUrl        String?
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender          User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+enum NotificationType {
+  NEW_MATCH_REQUEST
+  NEW_MESSAGE
+  AI_MATCH_FOUND
+  LISTING_STATUS_CHANGE
+  REPORT_UPDATE
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+enum SuggestionStatus {
+  SUGGESTED
+  DISMISSED
+  CONFIRMED
+}
+
+model MatchSuggestion {
+  id              String           @id @default(cuid())
+  sourcePostId    String
+  candidatePostId String
+  score           Float
+  explanation     String
+  status          SuggestionStatus @default(SUGGESTED)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  sourcePost      ShoePost         @relation("SourcePost", fields: [sourcePostId], references: [id], onDelete: Cascade)
+  candidatePost   ShoePost         @relation("CandidatePost", fields: [candidatePostId], references: [id], onDelete: Cascade)
+
+  @@unique([sourcePostId, candidatePostId])
+  @@map("match_suggestions")
+}
+
+model ShoeAIAttributes {
+  id                   String   @id @default(cuid())
+  shoePostId           String   @unique
+  aiBrandGuess         String?
+  aiModelGuess         String?
+  aiCategoryGuess      String?
+  aiPrimaryColor       String?
+  aiSecondaryColor     String?
+  aiMaterialTags       Json?
+  aiLogoTags           Json?
+  aiWearPatternSummary String?
+  aiSideGuess          String?
+  aiSummary            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  shoePost             ShoePost @relation(fields: [shoePostId], references: [id], onDelete: Cascade)
+
+  @@map("shoe_ai_attributes")
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  shoePostId     String?
+  reportedUserId String?
+  reason         String
+  details        String?
+  status         ReportStatus @default(OPEN)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  reporter       User         @relation("ReporterReports", fields: [reporterId], references: [id], onDelete: Cascade)
+  shoePost       ShoePost?    @relation(fields: [shoePostId], references: [id], onDelete: SetNull)
+  reportedUser   User?        @relation("ReportedUserReports", fields: [reportedUserId], references: [id], onDelete: SetNull)
+
+  @@map("reports")
+}
+
+model Block {
+  id            String   @id @default(cuid())
+  blockerId     String
+  blockedUserId String
+  createdAt     DateTime @default(now())
+
+  blocker       User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUser   User     @relation("Blocked", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedUserId])
+  @@map("blocks")
+}

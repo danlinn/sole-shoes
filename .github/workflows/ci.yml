@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Verify 90%+ coverage
+        run: |
+          node --input-type=module -e "
+            import { readFileSync } from 'fs';
+            const summary = JSON.parse(readFileSync('./coverage/coverage-summary.json', 'utf8'));
+            const { lines, branches, functions, statements } = summary.total;
+            const fail = [];
+            if (lines.pct < 90) fail.push('Lines: ' + lines.pct + '%');
+            if (branches.pct < 90) fail.push('Branches: ' + branches.pct + '%');
+            if (functions.pct < 90) fail.push('Functions: ' + functions.pct + '%');
+            if (statements.pct < 90) fail.push('Statements: ' + statements.pct + '%');
+            if (fail.length) {
+              console.error('Coverage below 90%:', fail.join(', '));
+              process.exit(1);
+            }
+            console.log('Coverage OK:',
+              'Statements:', statements.pct + '%',
+              'Branches:', branches.pct + '%',
+              'Functions:', functions.pct + '%',
+              'Lines:', lines.pct + '%'
+            );
+          "
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    env:
+      DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+      AUTH_SECRET: "ci-test-secret-not-real"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
