@@ -56,6 +56,8 @@ jobs:
     env:
       DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
       AUTH_SECRET: "ci-test-secret-not-real"
+      # Neon serverless driver needs a real DB; skip seed in CI (fake URL cannot connect)
+      SKIP_DB_SEED: "1"
 
     steps:
       - uses: actions/checkout@v4
