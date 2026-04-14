@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { ShoePostModel as ShoePost } from "@/generated/prisma";
+import type { ShoePostModel as ShoePost } from "@/generated/prisma/models";
 import { computeMatchScore, type ScoringResult } from "./scoring";
 
 // ---------------------------------------------------------------------------

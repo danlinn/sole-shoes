@@ -14,7 +14,10 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Pencil, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ListingActions } from "./listing-actions";
-import type { ShoePostModel as ShoePost, ShoeImageModel as ShoeImage } from "@/generated/prisma";
+import type {
+  ShoeImageModel as ShoeImage,
+  ShoePostModel as ShoePost,
+} from "@/generated/prisma/models";
 
 type ListingWithRelations = ShoePost & {
   images: ShoeImage[];

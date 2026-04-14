@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Pencil, Trash2, Settings } from "lucide-react";
 import Link from "next/link";
-import type { PostStatus } from "@/generated/prisma";
+import type { PostStatus } from "@/generated/prisma/enums";
 
 interface ListingOwnerControlsProps {
   postId: string;

@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ReportActions } from "./report-actions";
-import type { ReportStatus } from "@/generated/prisma";
+import type { ReportStatus } from "@/generated/prisma/enums";
 
 const statusVariant: Record<
   ReportStatus,

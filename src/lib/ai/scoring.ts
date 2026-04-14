@@ -1,9 +1,9 @@
 import type {
-  ShoePostModel as ShoePost,
   ShoeCategory,
   PostType,
   ShoeSide,
-} from "@/generated/prisma";
+} from "@/generated/prisma/enums";
+import type { ShoePostModel as ShoePost } from "@/generated/prisma/models";
 
 // ---------------------------------------------------------------------------
 // Types

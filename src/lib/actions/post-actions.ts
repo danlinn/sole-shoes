@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { shoePostSchema, type ShoePostInput } from "@/lib/validations";
 import { revalidatePath } from "next/cache";
-import type { PostStatus } from "@/generated/prisma";
+import type { PostStatus } from "@/generated/prisma/enums";
 
 export async function createShoePost(input: ShoePostInput, imageUrls: string[]) {
   const session = await auth();

@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ReportStatus } from "@/generated/prisma";
+import { ReportStatus } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {

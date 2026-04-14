@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { updateReportStatus } from "@/lib/actions/admin-actions";
 import { MoreHorizontal, Eye, CheckCircle, XCircle } from "lucide-react";
-import type { ReportStatus } from "@/generated/prisma";
+import type { ReportStatus } from "@/generated/prisma/enums";
 
 const statusActions: {
   label: string;

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import { updatePostStatus, deleteShoePost } from "@/lib/actions/post-actions";
-import type { PostStatus } from "@/generated/prisma";
+import type { PostStatus } from "@/generated/prisma/enums";
 
 const statusOptions: { label: string; value: PostStatus }[] = [
   { label: "Open", value: "OPEN" },
