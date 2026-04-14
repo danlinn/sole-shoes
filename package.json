@@ -4,8 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "next start",
+    "db:push": "prisma db push",
+    "db:seed": "tsx --env-file=.env.local prisma/seed.ts",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
