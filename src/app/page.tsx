@@ -94,27 +94,35 @@ export default async function HomePage({
   return (
     <div>
       {!hasFilters && (
-        <section className="bg-gradient-to-b from-primary/5 to-background py-16 sm:py-24">
-          <div className="mx-auto max-w-7xl px-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+        <section className="relative isolate overflow-hidden py-16 sm:py-24">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-20 bg-[url('/images/hero-shoes.png')] bg-cover bg-[center_40%] bg-no-repeat"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-b from-background/92 via-background/78 to-background"
+          />
+          <div className="relative z-0 mx-auto max-w-7xl px-4 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-background/80 shadow-sm ring-1 ring-border backdrop-blur-sm">
               <Footprints className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">
+            <h1 className="mt-6 text-4xl font-bold tracking-tight text-balance drop-shadow-sm sm:text-5xl">
               Lost a shoe? Found one?
             </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+            <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground text-pretty drop-shadow-sm">
               Sole Shoes helps reunite single lost shoes with their matching
               counterpart. Post a listing, browse matches, and reconnect with
               your missing shoe.
             </p>
-            <div className="mt-8 flex justify-center gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" asChild>
                 <Link href="/listings/new">
                   Post a Shoe
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="bg-background/60 backdrop-blur-sm" asChild>
                 <Link href="#browse">Browse Listings</Link>
               </Button>
             </div>
