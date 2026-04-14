@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { upload } from "@vercel/blob/client";
 import { createShoePost } from "@/lib/actions/post-actions";
 import type { ShoePostInput } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,8 @@ export default function NewListingPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     type: "LOST" as "LOST" | "FOUND",
@@ -71,11 +74,27 @@ export default function NewListingPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function addImageUrl() {
-    const trimmed = newImageUrl.trim();
-    if (trimmed && !imageUrls.includes(trimmed)) {
-      setImageUrls((prev) => [...prev, trimmed]);
-      setNewImageUrl("");
+  async function handleFilesSelected(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setIsUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        const blob = await upload(file.name, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+        uploaded.push(blob.url);
+      }
+      setImageUrls((prev) => [...prev, ...uploaded]);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Image upload failed. Try again."
+      );
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -353,46 +372,65 @@ export default function NewListingPage() {
               />
             </div>
 
-            {/* Image URLs */}
+            {/* Image Upload */}
             <div className="space-y-2">
-              <Label>Image URLs</Label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="https://example.com/shoe-image.jpg"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addImageUrl();
-                    }
-                  }}
-                />
-                <Button type="button" variant="outline" size="icon" onClick={addImageUrl}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <Label>Photos</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFilesSelected(e.target.files)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="w-full"
+              >
+                {isUploading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                {isUploading ? "Uploading..." : "Add photos"}
+              </Button>
               {imageUrls.length > 0 && (
-                <ul className="mt-2 space-y-1">
+                <ul className="mt-2 grid grid-cols-3 gap-2">
                   {imageUrls.map((url, i) => (
                     <li
-                      key={i}
-                      className="flex items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm"
+                      key={url}
+                      className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
                     >
-                      <span className="flex-1 truncate">{url}</span>
+                      <Image
+                        src={url}
+                        alt={`Upload ${i + 1}`}
+                        fill
+                        sizes="(max-width: 640px) 33vw, 200px"
+                        className="object-cover"
+                      />
                       <button
                         type="button"
                         onClick={() => removeImageUrl(i)}
-                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        aria-label="Remove photo"
+                        className="absolute right-1 top-1 rounded-full bg-background/90 p-1 text-foreground opacity-0 shadow transition-opacity group-hover:opacity-100"
                       >
                         <X className="h-3 w-3" />
                       </button>
+                      {i === 0 && (
+                        <span className="absolute bottom-1 left-1 rounded bg-background/90 px-1.5 py-0.5 text-[10px] font-medium">
+                          Primary
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
               <p className="text-xs text-muted-foreground">
-                Add URLs for images of the shoe. The first image will be used as the primary image.
+                Upload photos of the shoe (JPEG, PNG, WebP, or GIF — up to 10MB each).
+                The first photo will be used as the primary image.
               </p>
             </div>
 

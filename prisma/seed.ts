@@ -94,7 +94,7 @@ async function main() {
       status: "OPEN",
       images: {
         create: {
-          imageUrl: "/placeholder-shoe.svg",
+          imageUrl: "/images/seed/black-sidewalk.jpg",
           sortOrder: 0,
           isPrimary: true,
         },
@@ -123,7 +123,7 @@ async function main() {
       status: "OPEN",
       images: {
         create: {
-          imageUrl: "/placeholder-shoe.svg",
+          imageUrl: "/images/seed/black-sidewalk.jpg",
           sortOrder: 0,
           isPrimary: true,
         },
@@ -151,7 +151,7 @@ async function main() {
       status: "OPEN",
       images: {
         create: {
-          imageUrl: "/placeholder-shoe.svg",
+          imageUrl: "/images/seed/red-road.jpg",
           sortOrder: 0,
           isPrimary: true,
         },
@@ -163,23 +163,22 @@ async function main() {
     data: {
       userId: bob.id,
       type: "FOUND",
-      title: "Found left Adidas Superstar - White/Black",
+      title: "Found right trail runner near grass",
       description:
-        "Found a left Adidas Superstar in white with black stripes on the bus. Looks barely worn, maybe size 8.",
-      brand: "Adidas",
-      model: "Superstar",
+        "Found a right trail running shoe lying beside a pathway near some tall grass. Looks like it's been out in the weather for a bit but still intact. Dark grey/brown tones, mesh upper.",
+      brand: "Unknown",
       category: "SNEAKER",
-      size: "8",
-      primaryColor: "White",
-      secondaryColor: "Black",
-      side: "LEFT",
-      condition: "LIKE_NEW",
-      locationText: "Seattle, WA - Metro Bus Route 40",
+      size: "9",
+      primaryColor: "Gray",
+      secondaryColor: "Brown",
+      side: "RIGHT",
+      condition: "WORN",
+      locationText: "Seattle, WA - Greenway Trail",
       dateOccurred: new Date("2025-03-20"),
       status: "OPEN",
       images: {
         create: {
-          imageUrl: "/placeholder-shoe.svg",
+          imageUrl: "/images/seed/trail-grass.jpg",
           sortOrder: 0,
           isPrimary: true,
         },
@@ -191,24 +190,24 @@ async function main() {
     data: {
       userId: alice.id,
       type: "LOST",
-      title: "Lost right brown leather boot",
+      title: "Lost left worn canvas sneaker - cream/floral",
       description:
-        "Lost my right Timberland boot while moving apartments. Brown leather, well-worn but sturdy.",
-      brand: "Timberland",
-      model: "6-Inch Premium",
-      category: "BOOT",
-      size: "10",
-      primaryColor: "Brown",
-      side: "RIGHT",
-      genderCategory: "Men",
+        "Lost my favorite left canvas sneaker downtown on a cobblestone street at night. Worn cream/yellow with a faded floral print, low-top, well-loved. Size 8.",
+      brand: "Converse",
+      model: "All Star Low",
+      category: "SNEAKER",
+      size: "8",
+      primaryColor: "Cream",
+      side: "LEFT",
+      genderCategory: "Women",
       condition: "WORN",
-      locationText: "Portland, OR - Southeast Division",
+      locationText: "Portland, OR - Old Town cobblestone street",
       dateOccurred: new Date("2025-03-08"),
       reward: "$20",
       status: "OPEN",
       images: {
         create: {
-          imageUrl: "/placeholder-shoe.svg",
+          imageUrl: "/images/seed/converse-night.jpg",
           sortOrder: 0,
           isPrimary: true,
         },
