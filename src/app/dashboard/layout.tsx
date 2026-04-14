@@ -1,44 +1,10 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  ClipboardList,
-  MessageSquare,
-  Sparkles,
-  Bell,
-  Settings,
-  LayoutDashboard,
-  Menu,
-} from "lucide-react";
-import { DashboardNavLink } from "./nav-link";
-
-const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/listings", label: "My Listings", icon: ClipboardList },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
-  { href: "/dashboard/ai-suggestions", label: "AI Suggestions", icon: Sparkles },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-];
-
-function SidebarNav() {
-  return (
-    <nav className="flex flex-col gap-1">
-      {navItems.map((item) => (
-        <DashboardNavLink
-          key={item.href}
-          href={item.href}
-          exact={item.exact}
-          icon={item.icon}
-          label={item.label}
-        />
-      ))}
-    </nav>
-  );
-}
+import { Menu } from "lucide-react";
+import { DashboardSidebarNav } from "./sidebar-nav";
 
 export default async function DashboardLayout({
   children,
@@ -66,7 +32,7 @@ export default async function DashboardLayout({
               <p className="text-sm text-muted-foreground">{session.user.name}</p>
             </div>
             <Separator className="mb-4" />
-            <SidebarNav />
+            <DashboardSidebarNav />
           </SheetContent>
         </Sheet>
       </div>
@@ -79,7 +45,7 @@ export default async function DashboardLayout({
             <p className="text-sm text-muted-foreground">{session.user.name}</p>
           </div>
           <Separator className="mb-4" />
-          <SidebarNav />
+          <DashboardSidebarNav />
         </div>
       </aside>
 

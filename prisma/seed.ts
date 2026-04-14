@@ -1,12 +1,26 @@
+import { config } from "dotenv";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
 
 const connectionString = process.env.DATABASE_URL!;
 const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  const sentinel = await prisma.shoePost.findFirst({
+    where: { title: "Lost left Nike Air Max 90 - Black" },
+  });
+  if (sentinel && process.env.FORCE_SEED !== "1") {
+    console.log(
+      "Seed skipped (already applied). Set FORCE_SEED=1 to run the full seed again."
+    );
+    return;
+  }
+
   const passwordHash = await bcrypt.hash("password123", 12);
 
   const alice = await prisma.user.upsert({
@@ -16,6 +30,22 @@ async function main() {
       name: "Alice Johnson",
       email: "alice@example.com",
       passwordHash,
+      city: "Portland, OR",
+      isAdmin: true,
+    },
+  });
+
+  const danPasswordHash = await bcrypt.hash(
+    process.env.ADMIN_SEED_PASSWORD ?? "password123",
+    12
+  );
+  await prisma.user.upsert({
+    where: { email: "dan@helloworlddevs.com" },
+    update: { isAdmin: true },
+    create: {
+      name: "Dan (Admin)",
+      email: "dan@helloworlddevs.com",
+      passwordHash: danPasswordHash,
       city: "Portland, OR",
       isAdmin: true,
     },
@@ -199,9 +229,14 @@ async function main() {
   });
 
   console.log("Seed data created successfully!");
-  console.log("Users: alice@example.com, bob@example.com, charlie@example.com");
-  console.log("Password for all: password123");
-  console.log("Alice is an admin user.");
+  console.log(
+    "Users: alice@example.com, dan@helloworlddevs.com, bob@example.com, charlie@example.com"
+  );
+  console.log("Password for alice, bob, charlie: password123");
+  console.log(
+    "Dan admin password: set ADMIN_SEED_PASSWORD before seed, else password123"
+  );
+  console.log("Alice and dan@helloworlddevs.com are admin users.");
 }
 
 main()

@@ -4,6 +4,15 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
 
+function parseAdminEmails(): string[] {
+  const raw = process.env.ADMIN_EMAILS;
+  if (!raw?.trim()) return [];
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(db) as never,
   session: { strategy: "jwt" },
@@ -57,8 +66,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { id: token.id as string },
           select: { isAdmin: true },
         });
+        const email = session.user.email?.toLowerCase();
+        const isEnvAdmin =
+          email !== undefined &&
+          email.length > 0 &&
+          parseAdminEmails().includes(email);
         (session.user as unknown as Record<string, unknown>).isAdmin =
-          dbUser?.isAdmin ?? false;
+          Boolean(dbUser?.isAdmin) || isEnvAdmin;
       }
       return session;
     },
