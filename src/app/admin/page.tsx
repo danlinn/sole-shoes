@@ -4,6 +4,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Link from "next/link";
 import {
   Users,
   ShoppingBag,
@@ -13,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { getAdminStats } from "@/lib/actions/admin-actions";
+import { Button } from "@/components/ui/button";
 
 export default async function AdminDashboardPage() {
   const stats = await getAdminStats();
@@ -53,7 +55,17 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/users">Manage users</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/admin/posts">Edit listings</Link>
+          </Button>
+        </div>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {metrics.map((metric) => (
           <Card key={metric.title}>

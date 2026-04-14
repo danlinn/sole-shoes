@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { createShoePost } from "@/lib/actions/post-actions";
+import { updateShoePost } from "@/lib/actions/post-actions";
 import type { ShoePostInput } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,46 +25,61 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Plus, X, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { format } from "date-fns";
 import { SHOE_CATEGORIES, SHOE_CONDITIONS } from "@/lib/shoe-listing-constants";
 
-export default function NewListingPage() {
+type PostPayload = {
+  id: string;
+  type: "LOST" | "FOUND";
+  title: string;
+  description: string;
+  brand: string;
+  model: string | null;
+  category: ShoePostInput["category"];
+  size: string;
+  primaryColor: string;
+  secondaryColor: string | null;
+  side: "LEFT" | "RIGHT";
+  genderCategory: string | null;
+  condition: ShoePostInput["condition"];
+  locationText: string;
+  dateOccurred: Date;
+  reward: string | null;
+  images: { imageUrl: string }[];
+};
+
+export function EditListingForm({
+  post,
+  cancelHref,
+}: {
+  post: PostPayload;
+  cancelHref: string;
+}) {
   const router = useRouter();
-  const { status } = useSession();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>(
+    post.images.map((i) => i.imageUrl)
+  );
   const [newImageUrl, setNewImageUrl] = useState("");
 
   const [form, setForm] = useState({
-    type: "LOST" as "LOST" | "FOUND",
-    title: "",
-    description: "",
-    brand: "",
-    model: "",
-    category: "SNEAKER" as ShoePostInput["category"],
-    size: "",
-    primaryColor: "",
-    secondaryColor: "",
-    side: "LEFT" as "LEFT" | "RIGHT",
-    genderCategory: "",
-    condition: "GOOD" as ShoePostInput["condition"],
-    locationText: "",
-    dateOccurred: "",
-    reward: "",
+    type: post.type,
+    title: post.title,
+    description: post.description,
+    brand: post.brand,
+    model: post.model ?? "",
+    category: post.category,
+    size: post.size,
+    primaryColor: post.primaryColor,
+    secondaryColor: post.secondaryColor ?? "",
+    side: post.side,
+    genderCategory: post.genderCategory ?? "",
+    condition: post.condition,
+    locationText: post.locationText,
+    dateOccurred: format(new Date(post.dateOccurred), "yyyy-MM-dd"),
+    reward: post.reward ?? "",
   });
-
-  if (status === "unauthenticated") {
-    router.push("/login");
-    return null;
-  }
-
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
 
   function updateField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -106,11 +120,12 @@ export default function NewListingPage() {
     };
 
     startTransition(async () => {
-      const result = await createShoePost(input, imageUrls);
+      const result = await updateShoePost(post.id, input, imageUrls);
       if (result.error) {
         setError(result.error);
-      } else if (result.postId) {
-        router.push(`/listings/${result.postId}`);
+      } else {
+        router.push(`/listings/${post.id}`);
+        router.refresh();
       }
     });
   }
@@ -118,17 +133,17 @@ export default function NewListingPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <Button variant="ghost" size="sm" className="mb-4" asChild>
-        <Link href="/">
+        <Link href={cancelHref}>
           <ArrowLeft className="mr-1 h-3 w-3" />
-          Back to listings
+          Back
         </Link>
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Post a Shoe</CardTitle>
+          <CardTitle>Edit listing</CardTitle>
           <CardDescription>
-            Fill out the details below to create a new listing for a lost or found shoe.
+            Update the details below. Changes apply immediately.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,7 +154,6 @@ export default function NewListingPage() {
               </Alert>
             )}
 
-            {/* Type */}
             <div className="space-y-2">
               <Label>Listing Type</Label>
               <div className="flex gap-4">
@@ -168,37 +182,31 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder="e.g. Lost red Nike Air Max left shoe"
                 value={form.title}
                 onChange={(e) => updateField("title", e.target.value)}
                 required
               />
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Describe the shoe in detail - any distinguishing marks, where you lost/found it, etc."
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
                 required
               />
             </div>
 
-            {/* Brand & Model */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="brand">Brand</Label>
                 <Input
                   id="brand"
-                  placeholder="e.g. Nike"
                   value={form.brand}
                   onChange={(e) => updateField("brand", e.target.value)}
                   required
@@ -208,14 +216,12 @@ export default function NewListingPage() {
                 <Label htmlFor="model">Model (optional)</Label>
                 <Input
                   id="model"
-                  placeholder="e.g. Air Max 90"
                   value={form.model}
                   onChange={(e) => updateField("model", e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Category & Condition */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Category</Label>
@@ -255,13 +261,11 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            {/* Size & Side */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="size">Size</Label>
                 <Input
                   id="size"
-                  placeholder="e.g. 10, 42, 8.5"
                   value={form.size}
                   onChange={(e) => updateField("size", e.target.value)}
                   required
@@ -284,13 +288,11 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            {/* Colors */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="primaryColor">Primary Color</Label>
                 <Input
                   id="primaryColor"
-                  placeholder="e.g. Red"
                   value={form.primaryColor}
                   onChange={(e) => updateField("primaryColor", e.target.value)}
                   required
@@ -300,31 +302,26 @@ export default function NewListingPage() {
                 <Label htmlFor="secondaryColor">Secondary Color (optional)</Label>
                 <Input
                   id="secondaryColor"
-                  placeholder="e.g. White"
                   value={form.secondaryColor}
                   onChange={(e) => updateField("secondaryColor", e.target.value)}
                 />
               </div>
             </div>
 
-            {/* Gender Category */}
             <div className="space-y-2">
               <Label htmlFor="genderCategory">Gender Category (optional)</Label>
               <Input
                 id="genderCategory"
-                placeholder="e.g. Men, Women, Unisex, Kids"
                 value={form.genderCategory}
                 onChange={(e) => updateField("genderCategory", e.target.value)}
               />
             </div>
 
-            {/* Location & Date */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="locationText">Location</Label>
                 <Input
                   id="locationText"
-                  placeholder="e.g. Central Park, NYC"
                   value={form.locationText}
                   onChange={(e) => updateField("locationText", e.target.value)}
                   required
@@ -342,18 +339,15 @@ export default function NewListingPage() {
               </div>
             </div>
 
-            {/* Reward */}
             <div className="space-y-2">
               <Label htmlFor="reward">Reward (optional)</Label>
               <Input
                 id="reward"
-                placeholder="e.g. $20, Coffee, Eternal gratitude"
                 value={form.reward}
                 onChange={(e) => updateField("reward", e.target.value)}
               />
             </div>
 
-            {/* Image URLs */}
             <div className="space-y-2">
               <Label>Image URLs</Label>
               <div className="flex gap-2">
@@ -376,7 +370,7 @@ export default function NewListingPage() {
                 <ul className="mt-2 space-y-1">
                   {imageUrls.map((url, i) => (
                     <li
-                      key={i}
+                      key={`${url}-${i}`}
                       className="flex items-center gap-2 rounded-md bg-muted px-2 py-1 text-sm"
                     >
                       <span className="flex-1 truncate">{url}</span>
@@ -392,18 +386,17 @@ export default function NewListingPage() {
                 </ul>
               )}
               <p className="text-xs text-muted-foreground">
-                Add URLs for images of the shoe. The first image will be used as the primary image.
+                First image is the primary. Editing replaces all images with this list.
               </p>
             </div>
 
-            {/* Submit */}
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={isPending} className="flex-1">
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isPending ? "Creating..." : "Create Listing"}
+                {isPending ? "Saving..." : "Save changes"}
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link href="/">Cancel</Link>
+                <Link href={cancelHref}>Cancel</Link>
               </Button>
             </div>
           </form>

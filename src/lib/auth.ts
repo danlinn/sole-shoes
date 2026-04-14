@@ -35,6 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!user || !user.passwordHash) return null;
+        if (user.disabled) return null;
 
         const isValid = await bcrypt.compare(
           credentials.password as string,
@@ -64,7 +65,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
-          select: { isAdmin: true },
+          select: { isAdmin: true, disabled: true },
         });
         const email = session.user.email?.toLowerCase();
         const isEnvAdmin =
@@ -73,6 +74,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           parseAdminEmails().includes(email);
         (session.user as unknown as Record<string, unknown>).isAdmin =
           Boolean(dbUser?.isAdmin) || isEnvAdmin;
+        (session.user as unknown as Record<string, unknown>).disabled =
+          Boolean(dbUser?.disabled);
       }
       return session;
     },

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Footprints, Loader2 } from "lucide-react";
@@ -17,8 +17,10 @@ import {
 } from "@/components/ui/card";
 import type { SignInInput } from "@/lib/validations";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const accountDisabled = searchParams.get("disabled") === "1";
   const [form, setForm] = useState<SignInInput>({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +65,11 @@ export default function LoginPage() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="grid gap-4">
+          {accountDisabled && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+              Your account has been disabled. Contact support if you believe this is a mistake.
+            </div>
+          )}
           {error && (
             <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {error}
@@ -111,5 +118,19 @@ export default function LoginPage() {
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <Card className="w-full max-w-md p-8 text-center text-sm text-muted-foreground">
+          Loading…
+        </Card>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

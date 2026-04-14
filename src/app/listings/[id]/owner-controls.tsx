@@ -36,11 +36,13 @@ import type { PostStatus } from "@/generated/prisma/enums";
 interface ListingOwnerControlsProps {
   postId: string;
   status: string;
+  variant?: "owner" | "admin";
 }
 
 export function ListingOwnerControls({
   postId,
   status,
+  variant = "owner",
 }: ListingOwnerControlsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -74,7 +76,7 @@ export function ListingOwnerControls({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-sm font-medium">
           <Settings className="h-4 w-4" />
-          Manage Listing
+          {variant === "admin" ? "Admin: manage listing" : "Manage Listing"}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

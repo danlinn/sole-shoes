@@ -3,6 +3,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 vi.mock('@/lib/db', () => ({
   db: {
     user: { findUnique: vi.fn(), create: vi.fn(), count: vi.fn(), update: vi.fn() },
+    shoeImage: { deleteMany: vi.fn(), createMany: vi.fn() },
     shoePost: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     matchRequest: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     conversation: { findUnique: vi.fn(), create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
@@ -41,6 +42,9 @@ const mockDb = db as unknown as Record<string, Record<string, ReturnType<typeof 
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockDb.$transaction.mockImplementation(
+    async (fn: (tx: typeof mockDb) => Promise<unknown>) => fn(mockDb as never)
+  )
 })
 
 const validShoePostInput = {
@@ -117,13 +121,13 @@ describe('updateShoePost', () => {
     mockDb.shoePost.findUnique.mockResolvedValue({ id: 'post-1', userId: 'user-1' })
     mockDb.shoePost.update.mockResolvedValue({})
 
-    const result = await updateShoePost('post-1', { brand: 'Adidas' })
+    const result = await updateShoePost('post-1', { ...validShoePostInput, brand: 'Adidas' })
     expect(result).toEqual({ success: true })
   })
 
   it('returns error when not authenticated', async () => {
     mockAuth.mockResolvedValue(null)
-    const result = await updateShoePost('post-1', { brand: 'Adidas' })
+    const result = await updateShoePost('post-1', validShoePostInput)
     expect(result).toEqual({ error: 'You must be logged in' })
   })
 
@@ -131,7 +135,7 @@ describe('updateShoePost', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-2' } })
     mockDb.shoePost.findUnique.mockResolvedValue({ id: 'post-1', userId: 'user-1' })
 
-    const result = await updateShoePost('post-1', { brand: 'Adidas' })
+    const result = await updateShoePost('post-1', validShoePostInput)
     expect(result).toEqual({ error: 'Not authorized' })
   })
 
@@ -139,8 +143,8 @@ describe('updateShoePost', () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
     mockDb.shoePost.findUnique.mockResolvedValue(null)
 
-    const result = await updateShoePost('post-1', { brand: 'Adidas' })
-    expect(result).toEqual({ error: 'Not authorized' })
+    const result = await updateShoePost('post-1', validShoePostInput)
+    expect(result).toEqual({ error: 'Post not found' })
   })
 
   it('converts dateOccurred string to Date', async () => {
@@ -148,21 +152,10 @@ describe('updateShoePost', () => {
     mockDb.shoePost.findUnique.mockResolvedValue({ id: 'post-1', userId: 'user-1' })
     mockDb.shoePost.update.mockResolvedValue({})
 
-    await updateShoePost('post-1', { dateOccurred: '2024-06-01' })
+    await updateShoePost('post-1', { ...validShoePostInput, dateOccurred: '2024-06-01' })
 
     const updateData = mockDb.shoePost.update.mock.calls[0][0].data
     expect(updateData.dateOccurred).toBeInstanceOf(Date)
-  })
-
-  it('does not convert dateOccurred when not provided', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    mockDb.shoePost.findUnique.mockResolvedValue({ id: 'post-1', userId: 'user-1' })
-    mockDb.shoePost.update.mockResolvedValue({})
-
-    await updateShoePost('post-1', { brand: 'Adidas' })
-
-    const updateData = mockDb.shoePost.update.mock.calls[0][0].data
-    expect(updateData.dateOccurred).toBeUndefined()
   })
 })
 
@@ -237,7 +230,16 @@ describe('updatePostStatus', () => {
     mockDb.shoePost.findUnique.mockResolvedValue(null)
 
     const result = await updatePostStatus('post-1', 'MATCHED' as never)
-    expect(result).toEqual({ error: 'Not authorized' })
+    expect(result).toEqual({ error: 'Post not found' })
+  })
+
+  it('updates status when admin (not owner)', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
+    mockDb.shoePost.findUnique.mockResolvedValue({ id: 'post-1', userId: 'user-1' })
+    mockDb.shoePost.update.mockResolvedValue({})
+
+    const result = await updatePostStatus('post-1', 'MATCHED' as never)
+    expect(result).toEqual({ success: true })
   })
 })
 
@@ -262,7 +264,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ type: 'LOST' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.type).toBe('LOST')
+    expect(whereArg.AND).toContainEqual({ type: 'LOST' })
   })
 
   it('applies category filter', async () => {
@@ -272,7 +274,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ category: 'BOOT' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.category).toBe('BOOT')
+    expect(whereArg.AND).toContainEqual({ category: 'BOOT' })
   })
 
   it('applies side filter', async () => {
@@ -282,7 +284,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ side: 'LEFT' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.side).toBe('LEFT')
+    expect(whereArg.AND).toContainEqual({ side: 'LEFT' })
   })
 
   it('applies search filter', async () => {
@@ -292,8 +294,10 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ search: 'nike' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.OR).toBeDefined()
-    expect(whereArg.OR).toHaveLength(3)
+    const searchClause = whereArg.AND.find(
+      (f: { OR?: unknown[] }) => f.OR !== undefined
+    )
+    expect(searchClause?.OR).toHaveLength(3)
   })
 
   it('applies color filter', async () => {
@@ -303,7 +307,9 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ color: 'red' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.primaryColor).toBeDefined()
+    expect(whereArg.AND).toContainEqual({
+      primaryColor: { contains: 'red', mode: 'insensitive' },
+    })
   })
 
   it('applies custom status filter', async () => {
@@ -313,7 +319,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ status: 'MATCHED' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.status).toBe('MATCHED')
+    expect(whereArg.AND).toContainEqual({ status: 'MATCHED' })
   })
 
   it('defaults to OPEN and POTENTIAL_MATCH status when no status specified', async () => {
@@ -323,7 +329,9 @@ describe('getRecentPosts', () => {
     await getRecentPosts({})
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.status).toEqual({ in: ['OPEN', 'POTENTIAL_MATCH'] })
+    expect(whereArg.AND).toContainEqual({
+      status: { in: ['OPEN', 'POTENTIAL_MATCH'] },
+    })
   })
 
   it('paginates correctly', async () => {
@@ -346,7 +354,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ type: 'INVALID' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.type).toBeUndefined()
+    expect(whereArg.AND.some((f: { type?: string }) => f.type !== undefined)).toBe(false)
   })
 
   it('ignores invalid side values', async () => {
@@ -356,7 +364,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ side: 'BOTH' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.side).toBeUndefined()
+    expect(whereArg.AND.some((f: { side?: string }) => f.side !== undefined)).toBe(false)
   })
 
   it('applies size filter', async () => {
@@ -366,7 +374,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ size: '10' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.size).toBe('10')
+    expect(whereArg.AND).toContainEqual({ size: '10' })
   })
 
   it('applies FOUND type filter', async () => {
@@ -376,7 +384,7 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ type: 'FOUND' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.type).toBe('FOUND')
+    expect(whereArg.AND).toContainEqual({ type: 'FOUND' })
   })
 
   it('applies RIGHT side filter', async () => {
@@ -386,23 +394,58 @@ describe('getRecentPosts', () => {
     await getRecentPosts({ side: 'RIGHT' })
 
     const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
-    expect(whereArg.side).toBe('RIGHT')
+    expect(whereArg.AND).toContainEqual({ side: 'RIGHT' })
+  })
+
+  it('excludes listings from disabled users', async () => {
+    mockDb.shoePost.findMany.mockResolvedValue([])
+    mockDb.shoePost.count.mockResolvedValue(0)
+
+    await getRecentPosts({})
+
+    const whereArg = mockDb.shoePost.findMany.mock.calls[0][0].where
+    expect(whereArg.AND).toContainEqual({ user: { disabled: false } })
   })
 })
 
 describe('getPostById', () => {
   it('returns post by id', async () => {
-    const mockPost = { id: 'post-1', title: 'Test' }
+    mockAuth.mockResolvedValue({ user: { id: 'viewer-1' } })
+    const mockPost = { id: 'post-1', title: 'Test', userId: 'owner-1' }
     mockDb.shoePost.findUnique.mockResolvedValue(mockPost)
+    mockDb.user.findUnique.mockResolvedValue({ disabled: false })
 
     const result = await getPostById('post-1')
     expect(result).toEqual(mockPost)
   })
 
   it('returns null when post not found', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'viewer-1' } })
     mockDb.shoePost.findUnique.mockResolvedValue(null)
 
     const result = await getPostById('nonexistent')
     expect(result).toBeNull()
+  })
+
+  it('returns null when owner is disabled and viewer is not admin', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'viewer-1', isAdmin: false } })
+    mockDb.shoePost.findUnique.mockResolvedValue({
+      id: 'post-1',
+      userId: 'owner-1',
+    })
+    mockDb.user.findUnique.mockResolvedValue({ disabled: true })
+
+    const result = await getPostById('post-1')
+    expect(result).toBeNull()
+  })
+
+  it('returns post when owner is disabled but viewer is admin', async () => {
+    mockAuth.mockResolvedValue({ user: { id: 'admin-1', isAdmin: true } })
+    const mockPost = { id: 'post-1', title: 'Test', userId: 'owner-1' }
+    mockDb.shoePost.findUnique.mockResolvedValue(mockPost)
+
+    const result = await getPostById('post-1')
+    expect(result).toEqual(mockPost)
+    expect(mockDb.user.findUnique).not.toHaveBeenCalled()
   })
 })

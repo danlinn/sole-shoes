@@ -89,6 +89,8 @@ export default async function ListingDetailPage({
   }
 
   const isOwner = session?.user?.id === post.userId;
+  const isAdmin = Boolean(session?.user?.isAdmin);
+  const canManageListing = isOwner || isAdmin;
   const canMatch =
     !isOwner &&
     !!session?.user?.id &&
@@ -341,9 +343,13 @@ export default async function ListingDetailPage({
             </CardContent>
           </Card>
 
-          {/* Owner controls */}
-          {isOwner && (
-            <ListingOwnerControls postId={post.id} status={post.status} />
+          {/* Owner / admin controls */}
+          {canManageListing && (
+            <ListingOwnerControls
+              postId={post.id}
+              status={post.status}
+              variant={isAdmin && !isOwner ? "admin" : "owner"}
+            />
           )}
 
           {/* Match action */}

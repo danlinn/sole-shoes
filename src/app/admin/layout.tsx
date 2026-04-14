@@ -46,6 +46,18 @@ export default async function AdminLayout({
           >
             Reports
           </Link>
+          <Link
+            href="/admin/posts"
+            className="border-b-2 border-transparent px-1 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+          >
+            Listings
+          </Link>
+          <Link
+            href="/admin/users"
+            className="border-b-2 border-transparent px-1 py-3 text-sm font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+          >
+            Users
+          </Link>
         </div>
       </nav>
       <Separator />

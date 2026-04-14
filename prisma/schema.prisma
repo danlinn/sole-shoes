@@ -17,6 +17,7 @@ model User {
   preferredContact     String?
   emailVerified        DateTime?
   isAdmin              Boolean   @default(false)
+  disabled             Boolean   @default(false)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
